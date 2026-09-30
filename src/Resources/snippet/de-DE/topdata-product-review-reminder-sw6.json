@@ -1,8 +1,9 @@
 {
-    "topdata-product-review-reminder-sw6": {
-        "example": {
-            "title": "Example Title",
-            "content": "This is a translated snippet."
-        }
+    "TopdataProductReviewReminderSW6": {
+        "reviewReminderSubject": "Wie war Ihre Bestellung?",
+        "reviewReminderHeadline": "Ihre Meinung zählt",
+        "reviewReminderIntro": "Hallo %firstName%, Sie haben bei uns eingekauft. Würden Sie uns eine kurze Bewertung zu Ihrer Bestellung %orderNumber% schenken?",
+        "reviewReminderCta": "Jetzt bewerten",
+        "reviewReminderFooter": "Sie erhalten diese Nachricht, weil Sie bei uns eingekauft haben."
     }
 }

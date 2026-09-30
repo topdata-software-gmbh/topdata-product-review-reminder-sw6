@@ -2,13 +2,22 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/platform/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
     <card>
-        <title>Basic Configuration</title>
-        <title lang="de-DE">Grundeinstellungen</title>
-        
-        <input-field>
-            <name>example</name>
-            <label>Example Configuration</label>
-            <label lang="de-DE">Beispiel Konfiguration</label>
+        <title>Review Reminder</title>
+        <title lang="de-DE">Produktbewertungserinnerung</title>
+
+        <!-- type must be one of the config.xsd enum values; there is no "number". -->
+        <input-field type="bool">
+            <name>enabled</name>
+            <label>Send review reminders</label>
+            <label lang="de-DE">Bewertungserinnerungen senden</label>
+            <defaultValue>false</defaultValue>
+        </input-field>
+
+        <input-field type="int">
+            <name>delayDays</name>
+            <label>Days after order date</label>
+            <label lang="de-DE">Tage nach Bestelldatum</label>
+            <defaultValue>14</defaultValue>
         </input-field>
     </card>
 </config>

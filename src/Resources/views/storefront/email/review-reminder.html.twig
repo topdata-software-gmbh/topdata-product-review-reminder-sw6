@@ -1,0 +1,58 @@
+{#
+    Standalone mail document on purpose: this is rendered by Twig\Environment
+    from a CLI/worker context with no Request, no `context` and no page
+    variables. It must not sw_extends the storefront base template, which reads
+    context.languageInfo.localeCode and calls render_esi(path('frontend.header'))
+    — a live HTTP call back into the shop from inside mail rendering.
+
+    Copy arrives as pre-resolved `labels` from
+    ReviewReminderTranslationService. Do not reintroduce `|trans` here: in 6.7
+    it resolves only from the `snippet` table, which never contains this
+    plugin's keys, and it renders the literal key into the mail.
+
+    @sw-package framework
+#}
+<!DOCTYPE html>
+<html lang="{{ languageLocale|default('en-GB') }}">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ labels.reviewReminderSubject|default('')|sw_sanitize }}</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;">
+<div style="max-width:600px;margin:0 auto;padding:24px;font-family:Arial,Helvetica,sans-serif;background:#ffffff;">
+    <h1 style="font-size:20px;margin:0 0 16px;">
+        {{ labels.reviewReminderHeadline|default('')|sw_sanitize }}
+    </h1>
+
+    <p style="font-size:15px;line-height:1.5;margin:0 0 24px;">
+        {{ labels.reviewReminderIntro|default('')|sw_sanitize }}
+    </p>
+
+    <ul style="list-style:none;padding:0;margin:0;">
+        {% for product in products %}
+            <li style="margin-bottom:16px;border-bottom:1px solid #eeeeee;padding-bottom:12px;">
+                {% if product.coverMediaUrl %}
+                    <img src="{{ product.coverMediaUrl }}" alt="" width="80"
+                         style="float:left;margin-right:12px;border-radius:3px;" />
+                {% endif %}
+                <strong style="font-size:15px;">{{ product.name|sw_sanitize }}</strong>
+
+                <div style="clear:both;"></div>
+
+                <p style="margin:12px 0 0;">
+                    <a href="{{ product.reviewUrl }}"
+                       style="display:inline-block;background:#000000;color:#ffffff;padding:10px 16px;text-decoration:none;border-radius:3px;font-size:14px;">
+                        {{ labels.reviewReminderCta|default('')|sw_sanitize }}
+                    </a>
+                </p>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <p style="font-size:12px;color:#888888;margin:24px 0 0;">
+        {{ labels.reviewReminderFooter|default('')|sw_sanitize }}
+    </p>
+</div>
+</body>
+</html>

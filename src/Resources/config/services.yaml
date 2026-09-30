@@ -4,5 +4,44 @@ services:
         autoconfigure: true
         public: false
 
+    # NOTE: 'Entity' is in this glob so ReviewReminderLogDefinition is registrable.
+    # A new top-level namespace MUST be added here or its classes are silently
+    # ignored and fail at runtime with "service not found", not at build time.
+    # 'Migration' and 'Model' are intentionally absent — migrations are not
+    # services, and the Model namespace holds plain immutable value objects.
     Topdata\TopdataProductReviewReminderSW6\:
-        resource: '../../{Command,Controller,Service,Subscriber,ScheduledTask}'
+        resource: '../../{Command,Controller,Entity,Service,Subscriber,ScheduledTask}'
+        # The DAL hydrator and the collection are plain data classes, not
+        # services. Only the *Definition* needs to be in the container.
+        exclude: '../../Entity/ReviewReminder/ReviewReminderLogEntity.php'
+
+    # MailService is registered under its own FQCN and is NOT decorated, so
+    # Shopware registers no alias for the abstract base. Without this alias the
+    # type hint on AbstractMailService cannot be resolved at compile time.
+    Shopware\Core\Content\Mail\Service\AbstractMailService: '@Shopware\Core\Content\Mail\Service\MailService'
+
+    # Single implementation per interface — Symfony does not alias these
+    # automatically, so both are declared explicitly.
+    Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderServiceInterface: '@Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderService'
+    Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderMailerInterface: '@Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderMailer'
+
+    # EntityRepository arguments are not resolvable by type, because one
+    # repository class serves every entity. Wire them by service id.
+    Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderUrlBuilder:
+        arguments:
+            $productRepository: '@product.repository'
+            $seoUrlRepository: '@seo_url.repository'
+            $salesChannelDomainRepository: '@sales_channel_domain.repository'
+            $productMediaRepository: '@product_media.repository'
+
+    Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderService:
+        arguments:
+            $orderRepository: '@order.repository'
+            $logRepository: '@topdata_product_review_reminder_log.repository'
+            $reviewRepository: '@product_review.repository'
+            $productRepository: '@product.repository'
+            $languageRepository: '@language.repository'
+
+    Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderLogService:
+        arguments:
+            $logRepository: '@topdata_product_review_reminder_log.repository'

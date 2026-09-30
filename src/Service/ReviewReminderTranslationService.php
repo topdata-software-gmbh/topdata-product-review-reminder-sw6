@@ -1,0 +1,190 @@
+<?php declare(strict_types=1);
+
+namespace Topdata\TopdataProductReviewReminderSW6\Service;
+
+/**
+ * Locale copy for the reminder mail, read from this plugin's own snippet JSON.
+ *
+ * Why not the `trans` Twig filter or the `snippet` table: in Shopware 6.7 both
+ * resolve exclusively from the `snippet` database table, scoped to a sales
+ * channel's snippet set. Plugin JSON under `src/Resources/snippet/` is only
+ * ever read by the admin snippet editor — `SnippetFileLoader` builds a
+ * `SnippetFileCollection` for `SnippetController`/`SnippetValidator` and
+ * nothing writes those files into the table. A mail rendered from the CLI or
+ * the messenger worker therefore renders the literal key
+ * "TopdataProductReviewReminderSW6.reviewReminderIntro" in the customer's
+ * inbox, which is exactly what the first --preview run produced.
+ *
+ * So the mail resolves its own copy: the JSON file is the editable source of
+ * truth, and BUILT_IN is a last-resort copy that keeps a send from breaking if
+ * a file is missing or corrupt. The JSON file always wins.
+ */
+final class ReviewReminderTranslationService
+{
+    /**
+     * Root key inside the snippet JSON. Kept as the plugin's snippet namespace
+     * so the files stay editable in the admin snippet editor.
+     */
+    public const NAMESPACE_KEY = 'TopdataProductReviewReminderSW6';
+
+    private const SNIPPET_FILE = 'topdata-product-review-reminder-sw6.json';
+
+    private const DEFAULT_LOCALE = 'de-DE';
+
+    private const FALLBACK_LOCALE = 'en-GB';
+
+    /**
+     * Shopware locale to shipped-locale mapping. The shop sells de-CH, fr-CH,
+     * de-DE and en-GB, and only the last two have a snippet file.
+     *
+     * @var array<string, string>
+     */
+    private const LOCALE_MAP = [
+        'de-CH' => 'de-DE',
+
+        // focusshop.ch runs on the gsw-CH locale; its customers read German.
+        'gsw-CH' => 'de-DE',
+        'de' => 'de-DE',
+        'de-AT' => 'de-DE',
+        'fr-CH' => 'de-DE',
+        'fr' => 'de-DE',
+        'fr-FR' => 'de-DE',
+        'it-CH' => 'de-DE',
+        'en-US' => 'en-GB',
+        'en' => 'en-GB',
+    ];
+
+    /**
+     * Last-resort copy, used only when a snippet file is missing, unreadable or
+     * lacks the key. Keys are the leaf names of the JSON root above.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private const BUILT_IN = [
+        'de-DE' => [
+            'reviewReminderSubject' => 'Wie war Ihre Bestellung?',
+            'reviewReminderHeadline' => 'Ihre Meinung zählt',
+            'reviewReminderIntro' => 'Hallo %firstName%, Sie haben bei uns eingekauft. Würden Sie uns eine kurze Bewertung zu Ihrer Bestellung %orderNumber% schenken?',
+            'reviewReminderCta' => 'Jetzt bewerten',
+            'reviewReminderFooter' => 'Sie erhalten diese Nachricht, weil Sie bei uns eingekauft haben.',
+        ],
+        'en-GB' => [
+            'reviewReminderSubject' => 'How was your order?',
+            'reviewReminderHeadline' => 'Your opinion matters',
+            'reviewReminderIntro' => 'Hi %firstName%, you recently shopped with us. Would you write a short review of your order %orderNumber%?',
+            'reviewReminderCta' => 'Write a review',
+            'reviewReminderFooter' => 'You are receiving this message because you placed an order with us.',
+        ],
+    ];
+
+    private readonly string $snippetDir;
+
+    /**
+     * Loaded snippet files, keyed by shipped locale. Parsed at most once per
+     * locale per process.
+     *
+     * @var array<string, array<string, string>>
+     */
+    private array $cache = [];
+
+    public function __construct()
+    {
+        $this->snippetDir = \dirname(__DIR__) . '/Resources/snippet';
+    }
+
+    public function getSubject(string $locale): string
+    {
+        return $this->translate($locale, 'reviewReminderSubject');
+    }
+
+    /**
+     * All copy for the mail body, already interpolated. Keys are the leaf names
+     * under NAMESPACE_KEY.
+     *
+     * @param array<string, string> $params
+     * @return array<string, string>
+     */
+    public function getLabels(string $locale, array $params = []): array
+    {
+        $shipped = $this->resolveShippedLocale($locale);
+
+        // Precedence, highest first. The `+` operator keeps the LEFT operand on
+        // a key collision, so the shipped snippet file has to come first and
+        // the built-in copy of the fallback locale last.
+        $strings = $this->loadFile($shipped)
+            + (self::BUILT_IN[$shipped] ?? [])
+            + $this->loadFile(self::FALLBACK_LOCALE)
+            + self::BUILT_IN[self::FALLBACK_LOCALE];
+
+        $labels = [];
+
+        foreach ($strings as $key => $value) {
+            $labels[$key] = $this->interpolate($value, $params);
+        }
+
+        return $labels;
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    public function translate(string $locale, string $key): string
+    {
+        return $this->getLabels($locale, ['%firstName%' => '', '%orderNumber%' => ''])[$key] ?? '';
+    }
+
+    /**
+     * Maps a Shopware locale onto a locale that actually has a snippet file.
+     */
+    private function resolveShippedLocale(string $locale): string
+    {
+        if (isset(self::BUILT_IN[$locale])) {
+            return $locale;
+        }
+
+        return self::LOCALE_MAP[$locale] ?? self::DEFAULT_LOCALE;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function loadFile(string $shippedLocale): array
+    {
+        if (isset($this->cache[$shippedLocale])) {
+            return $this->cache[$shippedLocale];
+        }
+
+        $path = $this->snippetDir . '/' . $shippedLocale . '/' . self::SNIPPET_FILE;
+        $strings = [];
+
+        if (is_file($path) && is_readable($path)) {
+            $raw = file_get_contents($path);
+
+            if ($raw !== false) {
+                $decoded = json_decode($raw, true);
+
+                // A flat file is accepted too, so the copy can be restructured
+                // without breaking a send.
+                $namespace = is_array($decoded) ? ($decoded[self::NAMESPACE_KEY] ?? $decoded) : null;
+
+                if (is_array($namespace)) {
+                    foreach ($namespace as $key => $value) {
+                        if (is_string($value)) {
+                            $strings[(string) $key] = $value;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $this->cache[$shippedLocale] = $strings;
+    }
+
+    /**
+     * @param array<string, string> $params
+     */
+    private function interpolate(string $value, array $params): string
+    {
+        return $params === [] ? $value : strtr($value, $params);
+    }
+}
