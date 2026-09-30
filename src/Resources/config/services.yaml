@@ -42,6 +42,10 @@ services:
             $productRepository: '@product.repository'
             $languageRepository: '@language.repository'
 
+    Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderMailer:
+        arguments:
+            $salesChannelRepository: '@sales_channel.repository'
+
     Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderLogService:
         arguments:
             $logRepository: '@topdata_product_review_reminder_log.repository'
