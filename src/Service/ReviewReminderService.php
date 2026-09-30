@@ -9,10 +9,12 @@ use Shopware\Core\Framework\Context;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityCollection;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Criteria;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsAnyFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\EqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\MultiFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\NotEqualsFilter;
 use Shopware\Core\Framework\DataAbstractionLayer\Search\Filter\RangeFilter;
+use Shopware\Core\Framework\DataAbstractionLayer\Search\Sorting\FieldSorting;
 use Topdata\TopdataProductReviewReminderSW6\Model\ReviewReminderCandidate;
 use Topdata\TopdataProductReviewReminderSW6\Model\ReviewReminderProduct;
 
@@ -28,6 +30,16 @@ final class ReviewReminderService implements ReviewReminderServiceInterface
      * invites a value large enough to time out the worker.
      */
     private const MAX_SEARCH_RESULTS = 500;
+
+    /**
+     * Rows fetched per page. Offset paging without a stable sort would skip
+     * and duplicate rows, and `order_date` is day-granular, so ties are the
+     * normal case rather than the exception.
+     *
+     * Equal to MAX_SEARCH_RESULTS so a normal run is a single query. The
+     * paging only matters for shops whose aged backlog exceeds one page.
+     */
+    private const PAGE_SIZE = 500;
 
     public function __construct(
         private readonly EntityRepository $orderRepository,
@@ -55,13 +67,33 @@ final class ReviewReminderService implements ReviewReminderServiceInterface
 
     private function loadEligibleOrders(Context $context, array $orderIds): EntityCollection
     {
+        $criteria = $this->buildEligibleOrderCriteria($context, $orderIds);
+
+        $eligibleIds = $this->collectEligibleOrderIds($criteria, $context);
+
+        if ($eligibleIds === []) {
+            return new EntityCollection();
+        }
+
+        return $this->hydrateEligibleOrders($eligibleIds, $context);
+    }
+
+    private function buildEligibleOrderCriteria(Context $context, array $orderIds): Criteria
+    {
         $cutoff = (new \DateTimeImmutable())->modify(
             sprintf('-%d days', $this->configService->getDelayDays())
         );
 
+        // No lower bound. An order stays eligible until it has actually been
+        // reminded, however old it is — a window here would be a silent
+        // policy cutoff, and it would apply retroactively to the existing
+        // order book, not just to future orders. (This shop's oldest order is
+        // months old, so a "last 30 days" window would have disabled the
+        // feature for almost everything already in the database.)
+        //
+        // `order_date` is a generated DATE column and RangeFilter only accepts
+        // scalars, hence the pre-formatted cutoff.
         $filters = [
-            // RangeFilter only accepts scalars, and `order_date` is stored as
-            // DATETIME(3), so the cutoff has to be pre-formatted.
             new RangeFilter('orderDate', [
                 RangeFilter::LTE => $cutoff->format(Defaults::STORAGE_DATE_TIME_FORMAT),
             ]),
@@ -79,25 +111,88 @@ final class ReviewReminderService implements ReviewReminderServiceInterface
         }
 
         $criteria = (new Criteria())->addFilter(...$filters);
-        $criteria->addAssociation('stateMachineState');
-        $criteria->addAssociation('orderCustomer');
-        $criteria->addAssociation('orderCustomer.customer');
-        $criteria->addAssociation('lineItems');
 
-        // No addAssociation('salesChannel'): the candidate only needs the
-        // scalar FKs already on the `order` row.
-        $criteria->setLimit(self::MAX_SEARCH_RESULTS);
-
-        $orders = $this->orderRepository->search($criteria, $context);
+        // Offset paging is only stable with a total ordering. `order_date` is
+        // day-granular, so ties are the normal case on any day with more than
+        // one order, and an unstable sort would skip and duplicate rows.
+        // Longest-overdue first, `id` as the tiebreaker.
+        $criteria->addSorting(new FieldSorting('orderDate', FieldSorting::ASCENDING));
+        $criteria->addSorting(new FieldSorting('id', FieldSorting::ASCENDING));
 
         // The DAL cannot express "the associated customer is absent" with an
         // EqualsFilter, and a guest order has to be dropped here. Saving a
         // review requires a logged-in customer, so a guest is unreachable.
-        $orders = $orders->filter(
-            static fn (OrderEntity $order): bool => $order->getOrderCustomer()?->getCustomerId() !== null
-        );
+        // `orderCustomer` is a small 1:1 join; the heavy associations are only
+        // loaded for orders that survive the second phase.
+        $criteria->addAssociation('orderCustomer');
 
-        return $this->excludeAlreadyReminded($orders, $context);
+        return $criteria;
+    }
+
+    /**
+     * Pages through the window, excluding already-reminded orders per page,
+     * so MAX_SEARCH_RESULTS caps real candidates rather than raw rows.
+     *
+     * Excluding after a single limited query — the previous behaviour — made
+     * the limit permanently swallow every new candidate once a shop had more
+     * aged orders than the limit: the query kept returning the same oldest,
+     * already-sent rows, and the run returned nothing forever.
+     */
+    private function collectEligibleOrderIds(Criteria $criteria, Context $context): array
+    {
+        $collected = [];
+        $offset = 0;
+
+        while (count($collected) < self::MAX_SEARCH_RESULTS) {
+            $criteria->setLimit(self::PAGE_SIZE);
+            $criteria->setOffset($offset);
+
+            $page = $this->orderRepository->search($criteria, $context);
+            $fetched = $page->count();
+
+            if ($fetched === 0) {
+                break;
+            }
+
+            $page = $page->filter(
+                static fn (OrderEntity $order): bool => $order->getOrderCustomer()?->getCustomerId() !== null
+            );
+
+            $page = $this->excludeAlreadyReminded($page, $context);
+
+            foreach ($page as $order) {
+                $collected[] = (string) $order->getId();
+            }
+
+            // The fetched count, not the surviving count, decides whether more
+            // rows exist: a page that was filtered away entirely is not the
+            // end of the result set.
+            if ($fetched < self::PAGE_SIZE) {
+                break;
+            }
+
+            $offset += self::PAGE_SIZE;
+        }
+
+        if (count($collected) > self::MAX_SEARCH_RESULTS) {
+            $collected = array_slice($collected, 0, self::MAX_SEARCH_RESULTS);
+        }
+
+        return $collected;
+    }
+
+    private function hydrateEligibleOrders(array $orderIds, Context $context): EntityCollection
+    {
+        $criteria = (new Criteria())->addFilter(new EqualsAnyFilter('id', $orderIds));
+        $criteria->addAssociation('stateMachineState');
+        $criteria->addAssociation('orderCustomer');
+        $criteria->addAssociation('orderCustomer.customer');
+        $criteria->addAssociation('lineItems');
+        $criteria->setLimit(count($orderIds));
+
+        // No addAssociation('salesChannel'): the candidate only needs the
+        // scalar FKs already on the `order` row.
+        return $this->orderRepository->search($criteria, $context);
     }
 
     private function excludeAlreadyReminded(EntityCollection $orders, Context $context): EntityCollection
