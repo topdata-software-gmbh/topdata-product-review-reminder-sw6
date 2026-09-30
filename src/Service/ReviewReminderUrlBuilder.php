@@ -21,7 +21,17 @@ use Topdata\TopdataProductReviewReminderSW6\Model\ReviewReminderProduct;
  */
 final readonly class ReviewReminderUrlBuilder
 {
-    /** The anchor rendered by core's review component on the product page. */
+    /**
+     * The anchor core's review component renders on the product page.
+     *
+     * The fragment alone is not enough: core renders the review form as a
+     * collapsed Bootstrap region and only opens the review tab after its own
+     * save-route redirect. A plugin storefront script
+     * (`topdata-product-review-reminder-s-w6.js`) reads this fragment, opens
+     * the tab and expands the form. Core's own `?success=1` would also open
+     * the tab but renders a "thanks for your review" notice, which would be
+     * untrue on an invitation nobody has answered yet.
+     */
     public const REVIEW_ANCHOR = '#review-form';
 
     private const DETAIL_ROUTE = 'frontend.detail.page';
