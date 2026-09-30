@@ -2,6 +2,7 @@
 
 namespace Topdata\TopdataProductReviewReminderSW6\ScheduledTask;
 
+use Psr\Log\LoggerInterface;
 use Shopware\Core\Framework\DataAbstractionLayer\EntityRepository;
 use Shopware\Core\Framework\MessageQueue\ScheduledTask\ScheduledTaskHandler;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -12,10 +13,11 @@ class ExampleTaskHandler extends ScheduledTaskHandler
 {
     public function __construct(
         EntityRepository $scheduledTaskRepository,
+        LoggerInterface $exceptionLogger,
         #[Autowire('%kernel.logs_dir%')]
         private readonly string $logDir
     ) {
-        parent::__construct($scheduledTaskRepository);
+        parent::__construct($scheduledTaskRepository, $exceptionLogger);
     }
 
     public function run(): void
