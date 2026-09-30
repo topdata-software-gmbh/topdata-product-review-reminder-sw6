@@ -41,7 +41,7 @@ See [docs/configuration.md](docs/configuration.md). Both settings live in
 | Setting      | Default | Meaning                                                        |
 |--------------|---------|----------------------------------------------------------------|
 | `enabled`    | `false` | Master switch. The plugin ships **off** and sends nothing.       |
-| `delayDays`  | `14`    | Days after `order_date` before the customer is invited.          |
+| `delayDays`  | `14`    | Days after `order_date` before the customer is invited. `0` = next run. |
 
 ## Running it
 

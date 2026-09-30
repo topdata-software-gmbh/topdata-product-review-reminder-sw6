@@ -27,8 +27,21 @@ final readonly class ReviewReminderConfigService
     {
         $days = $this->systemConfigService->getInt(self::PREFIX . 'delayDays', $salesChannelId);
 
-        // A hand-typed 0 would notify every order on every run. Anything below 1
-        // falls back to the documented default.
-        return $days > 0 ? $days : self::DEFAULT_DELAY_DAYS;
+        // 0 is a legitimate value and means "invite on the next run": every
+        // order whose order_date has passed is eligible immediately. It was
+        // previously clamped to the default, on the assumption that a
+        // hand-typed 0 would notify every order on every run. That assumption
+        // is wrong — the unique index on order_id means an order is invited at
+        // most once, whatever delayDays is set to.
+        //
+        // Note that a *missing* config row also reads as 0, because
+        // getInt() casts null. That is not a storm risk: isEnabled() reads
+        // false in the same situation, so a missing config means the plugin
+        // sends nothing until someone deliberately enables it. `enabled` is the
+        // master switch, not delayDays.
+        //
+        // Negative values never reach here — Shopware's config store coerces
+        // them to 0 — but the fallback keeps the signature total.
+        return $days >= 0 ? $days : self::DEFAULT_DELAY_DAYS;
     }
 }

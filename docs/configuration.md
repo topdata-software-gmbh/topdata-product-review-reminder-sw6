@@ -33,6 +33,12 @@ update or a config import.
 
 How many days after the order date a customer is invited.
 
+**`0` is valid and means "invite on the next run"** — every order whose
+`order_date` has passed is eligible immediately. It does not repeat: the unique
+index on `order_id` means an order is invited at most once, whatever this is set
+to. Use it to mail the whole backlog in one go, together with the command's
+`--limit`.
+
 **This counts from `order.order_date`, not from delivery.** There is no
 delivery date to count from: in this shop no order ever reaches a `shipped` or
 `completed` state, so a delivery-triggered design would never fire. The

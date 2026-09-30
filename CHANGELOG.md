@@ -7,13 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 
 ### Added
 - Post-purchase review reminder emails: one per order, X days after order date
-- Configurable via `enabled` (default off) and `delayDays` (default 14)
+- Configurable via `enabled` (default off) and `delayDays` (default 14, where `0` means "invite on the next run")
 - `topdata_product_review_reminder_log` audit table with a unique index on `order_id`
 - Claim-before-send lifecycle: a unique-index claim prevents two runs from mailing the same order
 - `topdata:product-review-reminder:send` console command, dry-run by default
 - Daily scheduled task `topdata_product_review_reminder_s_w6.send_reminders`
 
 ### Fixed
+- Every send failed with a `ConstraintViolationException`: the `AbstractMailService::send()` payload was missing `contentPlain`, which `MailService` validates with `NotBlank`. `senderName` was missing too and surfaced as an `ErrorException`, since `MailService::createMail()` reads it unguarded
+- `delayDays = 0` was silently ignored and clamped to the default. The guard assumed `0` would notify every order on every run, but the unique index on `order_id` already guarantees one invitation per order
 - `ExampleTaskHandler` fatal `ArgumentCountError` — `ScheduledTaskHandler` takes a logger argument in 6.7
 - The log table was missing `created_at` / `updated_at`, which `EntityDefinition::defaultFields()` adds to every definition
 - `markSent()` and `release()` passed a `Criteria` to `update()` / `delete()`, which take lists of id maps in 6.7; the `sent_at` stamp was never written, so orders stayed eligible forever
