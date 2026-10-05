@@ -1,9 +1,28 @@
 {#
-    Standalone mail document on purpose: this is rendered by Twig\Environment
-    from a CLI/worker context with no Request, no `context` and no page
-    variables. It must not sw_extends the storefront base template, which reads
-    context.languageInfo.localeCode and calls render_esi(path('frontend.header'))
-    — a live HTTP call back into the shop from inside mail rendering.
+    FRAGMENT, not a document. This file is concatenated into the sales
+    channel's mail header/footer by
+    `MailService::buildContents()`:
+
+        sprintf('%s%s%s', $headerHtml, $data['contentHtml'], $footerHtml)
+
+    The header comes from `mail_header_footer_translation.header_html`, and it
+    is a *closed* 760px table: it opens a card, puts the logo in it and closes
+    it again. Anything this template emits therefore lands after that card, not
+    inside it.
+
+    That is why a full `<!DOCTYPE html><html><body>` document here is wrong on
+    two counts: the doctype ends up in the middle of the mail, and the body
+    renders as a second, narrower white block underneath the logo — which is
+    exactly the reported "logo part is wider than the white background below
+    it". Shopware's own mail templates are fragments for the same reason; see
+    vendor/shopware/core/Migration/Fixtures/mails/*/de-html.html.twig.
+
+    The 760px/40px below are not arbitrary: they mirror the configured header
+    card so that the logo block and this block read as one continuous white
+    card. If the shop ever changes headerHtml, re-check both numbers here.
+
+    The subject is NOT a <title> — the mailer passes it separately as
+    `$data['subject']`, resolved in ReviewReminderMailer::resolveSubject().
 
     Copy arrives as pre-resolved `labels` from
     ReviewReminderTranslationService. Do not reintroduce `|trans` here: in 6.7
@@ -12,47 +31,60 @@
 
     @sw-package framework
 #}
-<!DOCTYPE html>
-<html lang="{{ languageLocale|default('en-GB') }}">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ labels.reviewReminderSubject|default('')|sw_sanitize }}</title>
-</head>
-<body style="margin:0;padding:0;background:#f5f5f5;">
-<div style="max-width:600px;margin:0 auto;padding:24px;font-family:Arial,Helvetica,sans-serif;background:#ffffff;">
-    <h1 style="font-size:20px;margin:0 0 16px;">
-        {{ labels.reviewReminderHeadline|default('')|sw_sanitize }}
-    </h1>
+{#
+    The outer wrapper carries the same grey as the configured header wrapper
+    (`background:#f5f5f5`). Without a <body> the canvas behind this block
+    defaults to white, so a white card on white loses its edge and the two
+    cards stop reading as one. bgcolor is added alongside the CSS because
+    Outlook ignores background-color on tables. The 40px padding of the inner
+    card matches the header's `padding:30px 40px 10px 40px`, so logo and
+    content line up on the same left edge.
+#}
+<table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f5f5f5" style="background:#f5f5f5;" lang="{{ languageLocale|default('en-GB') }}">
+    <tr>
+        <td align="center">
 
-    <p style="font-size:15px;line-height:1.5;margin:0 0 24px;">
-        {{ labels.reviewReminderIntro|default('')|sw_sanitize }}
-    </p>
+            <table width="760" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;">
+                <tr>
+                    <td style="padding:24px 40px;font-family:Arial,Helvetica,sans-serif;">
 
-    <ul style="list-style:none;padding:0;margin:0;">
-        {% for product in products %}
-            <li style="margin-bottom:16px;border-bottom:1px solid #eeeeee;padding-bottom:12px;">
-                {% if product.coverMediaUrl %}
-                    <img src="{{ product.coverMediaUrl }}" alt="" width="80"
-                         style="float:left;margin-right:12px;border-radius:3px;" />
-                {% endif %}
-                <strong style="font-size:15px;">{{ product.name|sw_sanitize }}</strong>
+                        <h1 style="font-size:20px;margin:0 0 16px;">
+                            {{ labels.reviewReminderHeadline|default('')|sw_sanitize }}
+                        </h1>
 
-                <div style="clear:both;"></div>
+                        <p style="font-size:15px;line-height:1.5;margin:0 0 24px;">
+                            {{ labels.reviewReminderIntro|default('')|sw_sanitize }}
+                        </p>
 
-                <p style="margin:12px 0 0;">
-                    <a href="{{ product.reviewUrl }}"
-                       style="display:inline-block;background:#000000;color:#ffffff;padding:10px 16px;text-decoration:none;border-radius:3px;font-size:14px;">
-                        {{ labels.reviewReminderCta|default('')|sw_sanitize }}
-                    </a>
-                </p>
-            </li>
-        {% endfor %}
-    </ul>
+                        <ul style="list-style:none;padding:0;margin:0;">
+                            {% for product in products %}
+                                <li style="margin-bottom:16px;border-bottom:1px solid #eeeeee;padding-bottom:12px;">
+                                    {% if product.coverMediaUrl %}
+                                        <img src="{{ product.coverMediaUrl }}" alt="" width="80"
+                                             style="float:left;display:block;width:80px;height:auto;margin:0 12px 4px 0;border-radius:3px;" />
+                                    {% endif %}
+                                    <strong style="font-size:15px;">{{ product.name|sw_sanitize }}</strong>
 
-    <p style="font-size:12px;color:#888888;margin:24px 0 0;">
-        {{ labels.reviewReminderFooter|default('')|sw_sanitize }}
-    </p>
-</div>
-</body>
-</html>
+                                    <div style="clear:both;"></div>
+
+                                    <p style="margin:12px 0 0;">
+                                        <a href="{{ product.reviewUrl }}"
+                                           style="display:inline-block;background:#000000;color:#ffffff;padding:10px 16px;text-decoration:none;border-radius:3px;font-size:14px;">
+                                            {{ labels.reviewReminderCta|default('')|sw_sanitize }}
+                                        </a>
+                                    </p>
+                                </li>
+                            {% endfor %}
+                        </ul>
+
+                        <p style="font-size:12px;color:#888888;margin:24px 0 0;">
+                            {{ labels.reviewReminderFooter|default('')|sw_sanitize }}
+                        </p>
+
+                    </td>
+                </tr>
+            </table>
+
+        </td>
+    </tr>
+</table>
