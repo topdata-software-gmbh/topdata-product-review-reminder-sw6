@@ -8,8 +8,8 @@
         <!-- type must be one of the config.xsd enum values; there is no "number". -->
         <input-field type="bool">
             <name>enabled</name>
-            <label>Send review reminders</label>
-            <label lang="de-DE">Bewertungserinnerungen senden</label>
+            <label>Active</label>
+            <label lang="de-DE">Aktiv</label>
             <defaultValue>false</defaultValue>
         </input-field>
 

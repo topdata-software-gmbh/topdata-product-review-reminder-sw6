@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.1] - 2026-10-05
+
+### Changed
+- Renamed the `enabled` setting label from "Send review reminders" to "Active" (`Aktiv` in
+  German). The switch is the master switch for the whole feature — sending *and* the consent
+  checkbox — and the old label made it look like it only controlled sending. No behaviour change.
+- Consent copy: dropped the "Ja, " prefix from the checkbox label in all locales ("Yes, " / "Oui, "
+  accordingly), and the explanatory hint now renders in the smaller secondary text style.
+
 ## [1.2.0] - 2026-10-05
 
 ### Changed

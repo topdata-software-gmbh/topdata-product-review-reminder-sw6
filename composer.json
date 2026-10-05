@@ -1,7 +1,7 @@
 {
     "name":        "topdata/product-review-reminder-sw6",
     "description": "Topdata Product Review Reminder SW6",
-    "version":     "v1.2.0",
+    "version":     "v1.2.1",
     "type":        "shopware-platform-plugin",
     "license":     "MIT",
     "authors":     [

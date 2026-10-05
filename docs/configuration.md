@@ -12,12 +12,15 @@ Reminder SW6** and are read under the
 | Default | `false` |
 | Key | `TopdataProductReviewReminderSW6.config.enabled` |
 
-Master switch for both entry points: the console command and the daily
-scheduled task. While it is `false`:
+Master switch for the whole feature — shown as **Active** (`Aktiv`) in the
+plugin config. It gates sending (the console command and the daily scheduled
+task) and the consent checkbox. While it is `false`:
 
 - the scheduled task logs `Product review reminders are disabled — skipping run.`
   and does nothing
 - the console command refuses to run unless `--ignore-enabled` is passed
+- the consent provider reports every surface as invisible, so the registration
+  checkbox and the account card do not render
 
 The plugin ships disabled because this shop's SMTP relay has delivery enabled,
 so a mistake would reach real customer inboxes. It is not enabled by a plugin
