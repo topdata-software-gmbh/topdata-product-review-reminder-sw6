@@ -47,3 +47,25 @@ alternative — firing on a state transition — was rejected for the same reaso
 Lowering the value makes the plugin eligible for orders that are already older
 than the new threshold on the next run. The default command `--limit` of `1`
 stops that from becoming a mass send.
+
+## `consentCheckboxOnRegistration`
+
+| | |
+|---|---|
+| Type | `bool` |
+| Default | `true` |
+| Key | `TopdataProductReviewReminderSW6.config.consentCheckboxOnRegistration` |
+
+Whether the review-reminder consent checkbox appears on the registration form.
+It only matters while `enabled` is on: the checkbox is rendered by
+`TopdataConsentSW6` and this plugin's provider reports it as visible on the
+registration surface only when both settings are on. On the account profile and
+the post-checkout surface the checkbox is controlled by `enabled` alone.
+
+## Consent storage
+
+The customer's decision stays in this plugin's own table
+`topdata_product_review_reminder_consent` (tri-state: no row = never decided,
+`revoked_at = null` = granted, `revoked_at` set = declined). `TopdataConsentSW6`
+only renders the checkbox and calls the provider; it stores nothing itself.
+

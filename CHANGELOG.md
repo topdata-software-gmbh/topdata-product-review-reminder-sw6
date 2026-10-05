@@ -3,6 +3,29 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/) and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] - 2026-10-05
+
+### Changed
+- **Consent UI moved to `TopdataConsentSW6`.** The review-reminder checkbox is now rendered by the
+  central consent plugin on its registration, profile and post-checkout surfaces. This plugin
+  contributes a `ConsentProviderInterface` implementation
+  (`src/Consent/ReviewReminderConsentProvider.php`, position 20, visible while `enabled` is on; on
+  registration additionally gated by the new `consentCheckboxOnRegistration` setting) and keeps
+  owning its consent storage. The never-wired account card, the form partial, the widget controller
+  and the Twig accessor were removed. `topdata/consent-sw6` is now a hard dependency.
+
+### Added
+- `consentCheckboxOnRegistration` setting (default on) controlling whether the review-reminder
+  checkbox appears on the registration form.
+- Flat `storefront.de-DE.json` / `storefront.en-GB.json` snippet files so the consent label and hint
+  resolve through `|trans` (locale-subfolder files are skipped by `SnippetFileLoader`; the
+  mail-specific copy continues to be read directly from the subfolder files).
+
+### Fixed
+- Declining the review reminder from an "unknown" state now creates an explicit revoked row instead
+  of silently doing nothing. Without it the purpose stayed undecided and the post-checkout card
+  asked again.
+
 ## [1.1.0] - 2026-09-30
 
 ### Added

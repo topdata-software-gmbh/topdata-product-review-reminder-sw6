@@ -115,6 +115,24 @@ afterwards:
 A row with `sent_at IS NULL` is therefore a crashed run, not a sent reminder,
 and stays eligible on purpose.
 
+## Consent
+
+A customer only receives review reminders while consent stands. The customer's
+decision is stored in this plugin's own `topdata_product_review_reminder_consent`
+table (never decided / granted / declined) and is written by the
+`ReviewReminderConsentProvider`, which plugs into the central
+`TopdataConsentSW6` checkbox framework (`topdata/consent-sw6` is a hard
+dependency). The checkbox then appears on:
+
+- **registration** — only if `enabled` and `consentCheckboxOnRegistration` are on
+- **account profile** — while `enabled` is on
+- **post-checkout** — while `enabled` is on, and only for customers who have not
+  decided yet; an explicit decline is never asked again
+
+An explicit decline from the "never decided" state creates a revoked row, so the
+post-checkout card does not re-ask. The mail-sending guard itself is unchanged:
+the daily sweep only considers orders placed while a standing consent exists.
+
 ## ⚠️ This shop delivers real email
 
 `core.mailerSettings` points at a live SMTP relay with delivery **enabled**, so
