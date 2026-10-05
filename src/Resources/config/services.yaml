@@ -10,7 +10,7 @@ services:
     # 'Migration' and 'Model' are intentionally absent — migrations are not
     # services, and the Model namespace holds plain immutable value objects.
     Topdata\TopdataProductReviewReminderSW6\:
-        resource: '../../{Command,Controller,Entity,Message,Service,Subscriber,ScheduledTask,Twig}'
+        resource: '../../{Command,Consent,Controller,Entity,Message,Service,Subscriber,ScheduledTask,Twig}'
         # The DAL hydrator and the collection are plain data classes, not
         # services. Only the *Definition* needs to be in the container.
         #

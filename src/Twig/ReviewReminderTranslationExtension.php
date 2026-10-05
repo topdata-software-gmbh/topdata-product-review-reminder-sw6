@@ -24,7 +24,6 @@ final class ReviewReminderTranslationExtension extends AbstractExtension impleme
 {
     public function __construct(
         private readonly ReviewReminderTranslationService $translationService,
-        private readonly ReviewReminderConsentAccessor $consentAccessor,
     ) {
     }
 
@@ -32,7 +31,6 @@ final class ReviewReminderTranslationExtension extends AbstractExtension impleme
     {
         return [
             'topdataReviewReminder' => $this->translationService,
-            'topdataReviewReminderConsent' => $this->consentAccessor,
         ];
     }
 }

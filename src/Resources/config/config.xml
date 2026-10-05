@@ -19,5 +19,12 @@
             <label lang="de-DE">Tage nach Bestelldatum</label>
             <defaultValue>14</defaultValue>
         </input-field>
+
+        <input-field type="bool">
+            <name>consentCheckboxOnRegistration</name>
+            <label>Show the consent checkbox during registration</label>
+            <label lang="de-DE">Einwilligungs-Checkbox bei der Registrierung anzeigen</label>
+            <defaultValue>true</defaultValue>
+        </input-field>
     </card>
 </config>

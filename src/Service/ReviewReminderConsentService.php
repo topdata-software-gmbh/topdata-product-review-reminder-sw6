@@ -31,6 +31,17 @@ final readonly class ReviewReminderConsentService
     }
 
     /**
+     * Tri-state read for the consent provider: null = never decided (no row),
+     * true = standing consent, false = revoked row.
+     */
+    public function getDecision(string $customerId, Context $context): ?bool
+    {
+        $consent = $this->find($customerId, $context);
+
+        return $consent?->isActive();
+    }
+
+    /**
      * Start of the current consent period, or null if consent does not stand.
      *
      * Callers use this as the lower bound for order_date_time: a customer who
@@ -133,19 +144,29 @@ final readonly class ReviewReminderConsentService
      * Record the opt-out. The row is kept with revoked_at set rather than
      * deleted, so the withdrawal itself remains on record.
      *
-     * Deliberately does NOT throw when no row exists: revoking something that
-     * was never granted is the desired end state, not an error.
+     * Declining a purpose that was never granted still creates the revoked row:
+     * otherwise the state would stay "never decided" and the post-checkout card
+     * would ask again, which is exactly what the tri-state model forbids.
      */
     public function revoke(string $customerId, Context $context): void
     {
+        $now = new \DateTimeImmutable();
         $existingId = $this->findId($customerId, $context);
 
         if ($existingId === null) {
+            $this->consentRepository->create([[
+                'customerId' => $customerId,
+                // granted_at is a Required field — anchor the row at the decision time
+                // and mark the same moment as the revocation.
+                'grantedAt' => $now,
+                'revokedAt' => $now,
+            ]], $context);
+
             return;
         }
 
         $this->consentRepository->update([
-            ['id' => $existingId, 'revokedAt' => new \DateTimeImmutable()],
+            ['id' => $existingId, 'revokedAt' => $now],
         ], $context);
     }
 
