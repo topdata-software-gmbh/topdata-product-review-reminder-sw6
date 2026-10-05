@@ -1,0 +1,16 @@
+{
+    "TopdataProductReviewReminderSW6": {
+        "reviewReminderSubject": "Veuillez évaluer votre achat chez Focus Discount",
+        "reviewReminderHeadline": "Votre avis compte",
+        "reviewReminderIntro": "Bonjour %firstName%, vous avez effectué un achat chez nous. Accepteriez-vous de nous laisser une courte évaluation de votre commande %orderNumber% ?",
+        "reviewReminderCta": "Évaluer maintenant",
+        "reviewReminderFooter": "Vous recevez ce message parce que vous avez effectué un achat chez nous.",
+        "consentTitle": "Rappel d'évaluation",
+        "consentLabel": "Oui, je souhaite recevoir un rappel pour laisser une évaluation.",
+        "consentHint": "Après une commande, vous recevrez un e-mail contenant un lien pour laisser une évaluation. Vous pouvez retirer votre consentement ici à tout moment.",
+        "consentSave": "Enregistrer",
+        "consentSaving": "enregistrement…",
+        "consentSaved": "enregistré",
+        "consentFailed": "Enregistrement impossible – veuillez appuyer sur le bouton."
+    }
+}

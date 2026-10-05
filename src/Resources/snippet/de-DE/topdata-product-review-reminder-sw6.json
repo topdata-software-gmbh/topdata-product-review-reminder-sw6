@@ -1,6 +1,6 @@
 {
     "TopdataProductReviewReminderSW6": {
-        "reviewReminderSubject": "Wie war Ihre Bestellung?",
+        "reviewReminderSubject": "Bitte bewerten Sie Ihren Einkauf bei Focus Discount",
         "reviewReminderHeadline": "Ihre Meinung zählt",
         "reviewReminderIntro": "Hallo %firstName%, Sie haben bei uns eingekauft. Würden Sie uns eine kurze Bewertung zu Ihrer Bestellung %orderNumber% schenken?",
         "reviewReminderCta": "Jetzt bewerten",

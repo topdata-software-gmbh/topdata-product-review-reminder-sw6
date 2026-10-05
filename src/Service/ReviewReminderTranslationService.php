@@ -35,7 +35,11 @@ final class ReviewReminderTranslationService
 
     /**
      * Shopware locale to shipped-locale mapping. The shop sells de-CH, fr-CH,
-     * de-DE and en-GB, and only the last two have a snippet file.
+     * de-DE and en-GB, and the plugin ships files for de-DE, fr-CH and en-GB.
+     *
+     * fr-CH is its own locale rather than an alias of de-DE: the sales channels
+     * sell to French-speaking customers, and silently handing them the German
+     * copy is not an acceptable fallback for a mail that asks for a review.
      *
      * @var array<string, string>
      */
@@ -46,9 +50,9 @@ final class ReviewReminderTranslationService
         'gsw-CH' => 'de-DE',
         'de' => 'de-DE',
         'de-AT' => 'de-DE',
-        'fr-CH' => 'de-DE',
-        'fr' => 'de-DE',
-        'fr-FR' => 'de-DE',
+        'fr-CH' => 'fr-CH',
+        'fr' => 'fr-CH',
+        'fr-FR' => 'fr-CH',
         'it-CH' => 'de-DE',
         'en-US' => 'en-GB',
         'en' => 'en-GB',
@@ -62,7 +66,7 @@ final class ReviewReminderTranslationService
      */
     private const BUILT_IN = [
         'de-DE' => [
-            'reviewReminderSubject' => 'Wie war Ihre Bestellung?',
+            'reviewReminderSubject' => 'Bitte bewerten Sie Ihren Einkauf bei Focus Discount',
             'reviewReminderHeadline' => 'Ihre Meinung zählt',
             'reviewReminderIntro' => 'Hallo %firstName%, Sie haben bei uns eingekauft. Würden Sie uns eine kurze Bewertung zu Ihrer Bestellung %orderNumber% schenken?',
             'reviewReminderCta' => 'Jetzt bewerten',
@@ -74,6 +78,20 @@ final class ReviewReminderTranslationService
             'consentSaving' => 'wird gespeichert …',
             'consentSaved' => 'gespeichert',
             'consentFailed' => 'Speichern nicht möglich – bitte den Knopf drücken.',
+        ],
+        'fr-CH' => [
+            'reviewReminderSubject' => 'Veuillez évaluer votre achat chez Focus Discount',
+            'reviewReminderHeadline' => 'Votre avis compte',
+            'reviewReminderIntro' => 'Bonjour %firstName%, vous avez effectué un achat chez nous. Accepteriez-vous de nous laisser une courte évaluation de votre commande %orderNumber% ?',
+            'reviewReminderCta' => 'Évaluer maintenant',
+            'reviewReminderFooter' => 'Vous recevez ce message parce que vous avez effectué un achat chez nous.',
+            'consentTitle' => 'Rappel d\'évaluation',
+            'consentLabel' => 'Oui, je souhaite recevoir un rappel pour laisser une évaluation.',
+            'consentHint' => 'Après une commande, vous recevrez un e-mail contenant un lien pour laisser une évaluation. Vous pouvez retirer votre consentement ici à tout moment.',
+            'consentSave' => 'Enregistrer',
+            'consentSaving' => 'enregistrement…',
+            'consentSaved' => 'enregistré',
+            'consentFailed' => 'Enregistrement impossible – veuillez appuyer sur le bouton.',
         ],
         'en-GB' => [
             'reviewReminderSubject' => 'How was your order?',
