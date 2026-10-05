@@ -67,6 +67,13 @@ final class ReviewReminderTranslationService
             'reviewReminderIntro' => 'Hallo %firstName%, Sie haben bei uns eingekauft. Würden Sie uns eine kurze Bewertung zu Ihrer Bestellung %orderNumber% schenken?',
             'reviewReminderCta' => 'Jetzt bewerten',
             'reviewReminderFooter' => 'Sie erhalten diese Nachricht, weil Sie bei uns eingekauft haben.',
+            'consentTitle' => 'Bewertungserinnerung',
+            'consentLabel' => 'Ja, ich möchte an die Bewertungen erinnert werden.',
+            'consentHint' => 'Sie erhalten nach einer Bestellung eine E-Mail mit einem Link zur Bewertung. Sie können Ihre Zustimmung hier jederzeit widerrufen.',
+            'consentSave' => 'Speichern',
+            'consentSaving' => 'wird gespeichert …',
+            'consentSaved' => 'gespeichert',
+            'consentFailed' => 'Speichern nicht möglich – bitte den Knopf drücken.',
         ],
         'en-GB' => [
             'reviewReminderSubject' => 'How was your order?',
@@ -74,6 +81,13 @@ final class ReviewReminderTranslationService
             'reviewReminderIntro' => 'Hi %firstName%, you recently shopped with us. Would you write a short review of your order %orderNumber%?',
             'reviewReminderCta' => 'Write a review',
             'reviewReminderFooter' => 'You are receiving this message because you placed an order with us.',
+            'consentTitle' => 'Review reminder',
+            'consentLabel' => 'Yes, I would like to be reminded about reviews.',
+            'consentHint' => 'After an order you will receive an email with a link to leave a review. You can withdraw your consent here at any time.',
+            'consentSave' => 'Save',
+            'consentSaving' => 'saving …',
+            'consentSaved' => 'saved',
+            'consentFailed' => 'Could not save – please press the button.',
         ],
     ];
 

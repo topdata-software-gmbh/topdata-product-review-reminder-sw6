@@ -1,0 +1,12 @@
+{# Card for the account overview. Rendered only as part of the full account page. #}
+<div class="account-overview-card account-overview-review-reminder">
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">
+                {{ topdataReviewReminder.translate(context.languageInfo.localeCode, 'consentTitle')|sw_sanitize }}
+            </h2>
+
+            {% sw_include '@TopdataProductReviewReminderSW6/storefront/component/account/review-reminder-consent-form.html.twig' %}
+        </div>
+    </div>
+</div>

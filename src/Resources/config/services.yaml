@@ -10,10 +10,17 @@ services:
     # 'Migration' and 'Model' are intentionally absent — migrations are not
     # services, and the Model namespace holds plain immutable value objects.
     Topdata\TopdataProductReviewReminderSW6\:
-        resource: '../../{Command,Controller,Entity,Service,Subscriber,ScheduledTask}'
+        resource: '../../{Command,Controller,Entity,Message,Service,Subscriber,ScheduledTask,Twig}'
         # The DAL hydrator and the collection are plain data classes, not
         # services. Only the *Definition* needs to be in the container.
-        exclude: '../../Entity/ReviewReminder/ReviewReminderLogEntity.php'
+        #
+        # The message must be excluded for a different reason: it is built
+        # with `new` and its single argument is a string, so autowiring it
+        # fails at compile time on $orderId.
+        exclude:
+            - '../../Entity/ReviewReminder/ReviewReminderLogEntity.php'
+            - '../../Entity/ReviewReminder/ReviewReminderConsentEntity.php'
+            - '../../Message/SendReviewReminderForOrder.php'
 
     # MailService is registered under its own FQCN and is NOT decorated, so
     # Shopware registers no alias for the abstract base. Without this alias the
@@ -49,3 +56,13 @@ services:
     Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderLogService:
         arguments:
             $logRepository: '@topdata_product_review_reminder_log.repository'
+
+    Topdata\TopdataProductReviewReminderSW6\Service\ReviewReminderConsentService:
+        arguments:
+            $consentRepository: '@topdata_product_review_reminder_consent.repository'
+
+    # Autoconfigure cannot tag this: Twig\Extension\GlobalsInterface is not a
+    # autoconfigurable interface, so without the explicit tag the storefront
+    # templates would fail with "Variable topdataReviewReminder does not exist".
+    Topdata\TopdataProductReviewReminderSW6\Twig\ReviewReminderTranslationExtension:
+        tags: ['twig.extension']

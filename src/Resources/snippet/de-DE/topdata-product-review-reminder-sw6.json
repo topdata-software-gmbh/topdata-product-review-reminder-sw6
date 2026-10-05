@@ -4,6 +4,13 @@
         "reviewReminderHeadline": "Ihre Meinung zählt",
         "reviewReminderIntro": "Hallo %firstName%, Sie haben bei uns eingekauft. Würden Sie uns eine kurze Bewertung zu Ihrer Bestellung %orderNumber% schenken?",
         "reviewReminderCta": "Jetzt bewerten",
-        "reviewReminderFooter": "Sie erhalten diese Nachricht, weil Sie bei uns eingekauft haben."
+        "reviewReminderFooter": "Sie erhalten diese Nachricht, weil Sie bei uns eingekauft haben.",
+        "consentTitle": "Bewertungserinnerung",
+        "consentLabel": "Ja, ich möchte an die Bewertungen erinnert werden.",
+        "consentHint": "Sie erhalten nach einer Bestellung eine E-Mail mit einem Link zur Bewertung. Sie können Ihre Zustimmung hier jederzeit widerrufen.",
+        "consentSave": "Speichern",
+        "consentSaving": "wird gespeichert …",
+        "consentSaved": "gespeichert",
+        "consentFailed": "Speichern nicht möglich – bitte den Knopf drücken."
     }
 }

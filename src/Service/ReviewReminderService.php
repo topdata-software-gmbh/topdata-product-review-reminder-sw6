@@ -48,7 +48,8 @@ final class ReviewReminderService implements ReviewReminderServiceInterface
         private readonly EntityRepository $productRepository,
         private readonly EntityRepository $languageRepository,
         private readonly ReviewReminderConfigService $configService,
-        private readonly ReviewReminderUrlBuilder $urlBuilder
+        private readonly ReviewReminderUrlBuilder $urlBuilder,
+        private readonly ReviewReminderConsentService $consentService
     ) {
     }
 
@@ -160,6 +161,8 @@ final class ReviewReminderService implements ReviewReminderServiceInterface
 
             $page = $this->excludeAlreadyReminded($page, $context);
 
+            $page = $this->excludeWithoutActiveConsent($page, $context);
+
             foreach ($page as $order) {
                 $collected[] = (string) $order->getId();
             }
@@ -230,6 +233,75 @@ final class ReviewReminderService implements ReviewReminderServiceInterface
 
         return $orders->filter(
             static fn (OrderEntity $order): bool => !in_array((string) $order->getId(), $loggedOrderIds, true)
+        );
+    }
+
+    /**
+     * Drops every order whose customer has no standing opt-in, and every order
+     * placed before that opt-in was granted.
+     *
+     * This one method is both gates the design asks for:
+     *
+     *  - The scheduled task reaches it through the sweep.
+     *  - SendReviewReminderForOrderHandler re-runs collectCandidates() when the
+     *    delayed message fires, so a consent withdrawn during the waiting period
+     *    is honoured — the queue delay is measured in days, not seconds.
+     *
+     * Batched into a single lookup: one query per batch instead of one per
+     * order, otherwise the daily sweep would be hundreds of round trips.
+     */
+    private function excludeWithoutActiveConsent(EntityCollection $orders, Context $context): EntityCollection
+    {
+        if ($orders->count() === 0) {
+            return $orders;
+        }
+
+        $customerIds = [];
+        foreach ($orders as $order) {
+            // The customer id is read as the plain FK on order_customer. The
+            // hydrated `customer` association is only loaded by
+            // hydrateEligibleOrders(), one stage later, so going through it here
+            // would yield null on every page of the sweep.
+            $customerId = $order->getOrderCustomer()?->getCustomerId();
+
+            if ($customerId !== null) {
+                $customerIds[(string) $customerId] = true;
+            }
+        }
+
+        $grantedSince = $this->consentService->activeSinceForCustomers(array_keys($customerIds), $context);
+
+        return $orders->filter(
+            static function (OrderEntity $order) use ($grantedSince): bool {
+                $customerId = $order->getOrderCustomer()?->getCustomerId();
+                $orderDate = $order->getOrderDate();
+
+                if ($customerId === null || $orderDate === null) {
+                    return false;
+                }
+
+                $grantedAt = $grantedSince[(string) $customerId] ?? null;
+
+                if ($grantedAt === null) {
+                    return false;
+                }
+
+                // Consent must already stand on the day of the order, and "on the
+                // day" has to be compared as a day. `order_date` is a generated DATE
+                // column, so it hydrates as midnight, while `granted_at` is a
+                // DATETIME. Comparing the raw timestamps made
+                // 2026-10-05 00:00:00 >= 2026-10-05 09:37:44 false, which silently
+                // dropped every order placed on the day the customer opted in — and
+                // with delayDays=0 that is the only order there ever is.
+                //
+                // Truncating granted_at to midnight is what the sentence above means,
+                // and it is the only reading under which the feature can fire at all:
+                // the customer consented, then bought, and wants to be reminded.
+                //
+                // Still no retroactive catch-up: an order from *before* the opt-in
+                // keeps its earlier order_date and stays excluded.
+                return $orderDate->getTimestamp() >= $grantedAt->setTime(0, 0)->getTimestamp();
+            }
         );
     }
 
