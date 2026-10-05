@@ -3,6 +3,13 @@ src/Resources/public/administration/
 src/Resources/public/storefront/
 
 src/Resources/app/administration/dist/
+
+# Storefront JS is build output. The source lives in
+# src/Resources/app/storefront/src/main.js (+ src/js/) and is bundled to
+# src/Resources/app/storefront/dist/storefront/js/<plugin>/<plugin>.js by
+# `bin/build-storefront.sh` (or the vendor storefront webpack directly).
+# Run that build after checkout / before deploying, otherwise Shopware finds
+# no script file to emit for this plugin.
 src/Resources/app/storefront/dist/
 
 vendor/
