@@ -12,19 +12,25 @@ class ReviewReminderTask extends ScheduledTask
     }
 
     /**
-     * Sweep cadence, not the reminder delay — `delayDays` is the operator's
-     * setting. 15 minutes is what bounds "the mail goes out shortly after the
-     * delay elapses"; `scheduled-task:run` polls at least every 15s, so this
-     * value is the real latency, not the 10-minute Ofelia cron that starts it.
+     * Reconciliation cadence, NOT the reminder delay. `delayDays` is the
+     * operator's setting and the delivery path is event-driven: every placed
+     * order queues its own message with a `DelayStamp`, so the mail is due at
+     * exactly the right moment. This sweep exists only to catch orders whose
+     * queued message was lost — a queue row dropped by a deployment, a
+     * dispatch that threw — which would otherwise leave a customer
+     * permanently un-reminded with nobody noticing.
+     *
+     * Daily is the right frequency for that: it is a repair run, not the
+     * primary path, and the unique index on `order_id` means it cannot
+     * duplicate anything the event path already delivered.
      *
      * Deliberately a code default rather than something an operator sets in
      * the admin: Shopware only re-applies this value while `run_interval`
      * still equals the previously registered default, so anyone who edits the
      * interval by hand takes ownership of it permanently and silently.
-     * One setting in one place means `delayDays` is the only knob.
      */
     public static function getDefaultInterval(): int
     {
-        return 900;
+        return 86400;
     }
 }
